@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<style>
+canvas {
+    border:1px solid #d3d3d3;
+    background-color: #f1f1f1;
+}
+</style>
+</head>
+<body align="center" onload="startGame()">
+<div>
+	<button value="left" class="direction" onclick="keyPress('left')">Left</button>
+	<button value="right" class="direction" onclick="keyPress('right')">Right</button>
+</div>
+<script>
+
+var myGamePiece;
+var myGamePieces = [], c = 0, current = [], board = [];
+var lose = false;
+function startGame() {
+    newShape();
+    myGameArea.start();
+}
+
+function newShape(){
+    myGamePiece = new component(20, 20, "red", 80, 0);
+}
+
+var myGameArea = {
+    canvas : document.createElement("canvas"),
+    start : function() {
+        this.canvas.width = 180;
+        this.canvas.height = 240;
+        this.context = this.canvas.getContext("2d");
+        document.body.insertBefore(this.canvas, document.body.childNodes[0]);
+		this.frameNo = 0;
+        this.interval = setInterval(updateGameArea, 20);
+    },
+    clear : function() {
+        this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    },
+    stop : function() {
+        clearInterval(this.interval);
+    }
+}
+
+function component(width, height, color, x, y) {
+	var shapes = [20,40,60,80];
+	var random = Math.floor(Math.random() * shapes.length);
+    this.width = shapes[random];
+    this.height = height;
+	this.speedX = 0;
+    this.speedY = 0;  
+    this.x = x;
+    this.y = y;    
+    this.update = function(){
+        ctx = myGameArea.context;
+        ctx.fillStyle = color;
+        ctx.fillRect(this.x, this.y, this.width, this.height);
+    }
+	this.newPos = function() {
+        this.x += this.speedX;
+        this.y += this.speedY;   
+		this.speedX = 0;
+		this.speedY = 0;
+    }
+}
+
+function updateGameArea() {
+	myGameArea.frameNo += 1;
+	if(itemDrop(myGamePiece.x,myGamePiece.y += 1)){
+		myGameArea.clear();
+		freeze();
+		myGamePiece.newPos();
+		myGamePiece.update();	
+	}else{
+	
+		current[c] = myGamePiece;
+		c++;
+		freeze();
+		if(lose){
+		myGameArea.stop();
+		 return;
+		}
+		removelines();
+		c = current.length;
+        newShape();
+	}
+}
+function removelines(){ 
+	var YtoDelete = myGamePiece.y; 
+	var XtoCount = 0;
+	var indexes = [];
+	
+	for(var i=0; i<current.length;i++){
+		if(current[i].y == YtoDelete){
+			XtoCount += current[i].width;
+			indexes.push(i);
+		}
+	}
+	if(XtoCount == 180){
+
+		for(var j = indexes.length-1; j>=0;j--){
+			current.splice(indexes[j],1);
+		}
+		for(var k=0; k<current.length;k++){
+		if(current[k].y < YtoDelete)
+			current[k].y += 20;
+			current[k].newPos();
+			current[k].update();
+		}
+	}
+}
+
+function freeze() {
+	current.forEach(drawBoard);
+}
+
+function drawBoard(item,index){
+	ctx = myGameArea.context;
+	ctx.fillStyle = "red";
+	ctx.fillRect(item.x, item.y, item.width, item.height);
+}
+
+function keyPress( key ) {
+	myGamePiece.speedX = 0;
+	myGamePiece.speedY = 0; 
+    switch ( key ) {
+        case 'left':
+			if(valid(-20)){
+				myGamePiece.speedX -=20;            
+			}
+			break;
+        case 'right':
+			if(valid(20)){
+				myGamePiece.speedX +=20;
+			}
+			break;
+    }
+	myGamePiece.newPos();    
+    myGamePiece.update();
+}
+function valid(offsetX, offsetY) {
+    offsetX = offsetX || 0;
+    offsetY = offsetY || 0;
+var b = 0;
+	if((myGamePiece.x + offsetX) < 0 || (myGamePiece.x + offsetX + myGamePiece.width) > 180) {
+		return false;
+	}
+	current.forEach(function(item) {
+	if(myGamePiece.y+20 > item.y){
+	if(myGamePiece.x+ myGamePiece.width + offsetX == item.x){ 
+	b = 1;
+	return false;
+	}
+	if(myGamePiece.x+ myGamePiece.width + offsetX == item.x+item.width){ 
+	b = 1;
+	return false;
+	}
+	if(myGamePiece.x+ myGamePiece.width + offsetX <item.x+item.width && myGamePiece.x+ myGamePiece.width + offsetX >item.x){ 
+	b = 1;
+	return false;
+	}
+	if(myGamePiece.x+ offsetX == item.x+ item.width){ 
+	b = 1;
+	return false;
+	}
+	if(myGamePiece.x+ offsetX < item.x+ item.width && myGamePiece.x+ offsetX > item.x ){ 
+	b = 1;
+	return false;
+	}
+	}
+});
+	if(b==1){
+		return false;
+	}
+	return true;
+}
+
+function itemDrop(offsetX, offsetY){
+	var b = 0;
+	if(offsetY >= 220){
+		return false;
+	}
+	
+	current.forEach(function(item) {
+	if(offsetY == 1 && item.y - 20  == 0){
+	if(offsetX == item.x ||(offsetX > item.x && offsetX < item.x + item.width) ||(offsetX < item.x && offsetX + myGamePiece.width > item.x)){ 
+	lose = true;
+	return false;
+	}
+	}
+	if(offsetY == item.y - 20) {
+	if(offsetX == item.x){ 
+	b = 1;
+	return false;
+	}else if(offsetX > item.x && offsetX < item.x + item.width){
+	b = 1;
+	return false;
+	}else if(offsetX < item.x && offsetX + myGamePiece.width > item.x){
+	b = 1;
+	return false;
+	}	
+	}
+
+});
+
+	if(b == 1 || lose){
+	return false;
+	}
+	return true;
+	}
+
+</script>
+</body>
+</html>
+
+
